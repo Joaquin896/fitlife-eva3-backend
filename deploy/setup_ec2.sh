@@ -22,6 +22,7 @@ ADMIN_USER="${ADMIN_USER:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD}"
 DEMO_PASSWORD="${DEMO_PASSWORD:-FitLife2026!}"
 export DEBIAN_FRONTEND=noninteractive
+export HOME="${HOME:-/root}"   # cloud-init ejecuta el user data sin $HOME
 
 # --- 1. Paquetes del sistema --------------------------------------------------
 apt-get update -y
@@ -34,8 +35,7 @@ id fitlife &>/dev/null || useradd --system --shell /usr/sbin/nologin --home-dir 
 
 # --- 3. Código fuente ---------------------------------------------------------
 if [ -d "$APP_DIR/.git" ]; then
-  git config --global --add safe.directory "$APP_DIR"
-  git -C "$APP_DIR" pull --ff-only
+  git -c safe.directory="$APP_DIR" -C "$APP_DIR" pull --ff-only
 else
   git clone "$REPO_URL" "$APP_DIR"
 fi

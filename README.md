@@ -9,10 +9,10 @@ Aplicación web fullstack con **Django 5.2 + Django REST Framework + PostgreSQL*
 
 | | URL |
 |---|---|
-| Aplicación | **http://IP_PUBLICA_EC2/** |
-| Django Admin | http://IP_PUBLICA_EC2/admin/ |
-| API REST (navegable) | http://IP_PUBLICA_EC2/api/ |
-| Health-check | http://IP_PUBLICA_EC2/api/salud/ |
+| Aplicación | **http://3.83.62.21/** (Elastic IP) |
+| Django Admin | http://3.83.62.21/admin/ |
+| API REST (navegable) | http://3.83.62.21/api/ |
+| Health-check | http://3.83.62.21/api/salud/ |
 
 > La instancia vive en AWS Academy Learner Lab: solo está encendida mientras el laboratorio está iniciado.
 
@@ -121,6 +121,7 @@ python manage.py test gym       # pruebas automáticas
 
    ```bash
    #!/bin/bash
+   export HOME=/root
    export REPO_URL=https://github.com/Joaquin896/fitlife-eva3-backend.git
    export ADMIN_PASSWORD='CAMBIAR_ESTA_CLAVE'
    export DEMO_PASSWORD='FitLife2026!'
