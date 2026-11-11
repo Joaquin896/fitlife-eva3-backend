@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Mi cuenta{% endblock %}
+{% block content %}
+<h1 class="h3">Hola, {{ socio.usuario.first_name|default:socio.usuario.username }}</h1>
+<div class="row g-3">
+  <div class="col-md-5 col-lg-4">
+    <div class="card p-3 text-center">
+      <h2 class="h6">Tu código QR de acceso</h2>
+      <div class="qr-box mx-auto"><img src="{% url 'qr_svg' socio.pk %}" alt="Código QR de acceso"></div>
+      <small class="text-muted mt-2">Muéstralo en el torniquete de entrada.</small>
+      <form method="post" action="{% url 'qr_regenerar' socio.pk %}" class="mt-2"
+            onsubmit="return confirm('¿Generar un QR nuevo? El actual dejará de funcionar.');">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="btn btn-sm btn-outline-secondary">Regenerar QR (si lo perdiste)</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-7 col-lg-8">
+    <div class="card p-3 mb-3">
+      <h2 class="h6">Membresía</h2>
+      {% if membresia %}
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+          <span class="fs-5 fw-semibold">{{ membresia.plan.nombre }}</span>
+          <span class="badge fs-6 text-bg-{% if membresia.estado == 'ACTIVA' %}success{% elif membresia.estado == 'VENCIDA' %}danger{% else %}info{% endif %}">{{ membresia.get_estado_display }}</span>
+          {% if not membresia.esta_pagada %}<span class="badge text-bg-warning">Pago pendiente</span>{% endif %}
+        </div>
+        <p class="mb-0 mt-2">Vigencia: {{ membresia.fecha_inicio|date:"d-m-Y" }} al {{ membresia.fecha_fin|date:"d-m-Y" }}
+          {% if membresia.estado == 'ACTIVA' %}· <strong>{{ membresia.dias_restantes }}</strong> día(s) restantes{% endif %}
+          {% if membresia.dias_congelados %}· {{ membresia.dias_congelados }} día(s) congelados{% endif %}</p>
+      {% else %}
+        <p class="mb-0">No tienes una membresía registrada. Acércate a recepción.</p>
+      {% endif %}
+    </div>
+    <div class="card p-3 mb-3">
+      <div class="d-flex justify-content-between"><h2 class="h6">Mis próximas clases</h2><a href="{% url 'clases' %}" class="small">Reservar</a></div>
+      <table class="table table-sm mb-0"><tbody>
+      {% for r in reservas %}
+        <tr><td>{{ r.sesion.clase.nombre }}</td><td>{{ r.sesion.inicio|date:"D d-m H:i" }}</td>
+          <td><span class="badge text-bg-{% if r.estado == 'CONFIRMADA' %}success{% elif r.estado == 'EN_ESPERA' %}warning{% else %}primary{% endif %}">{{ r.get_estado_display }}{% if r.posicion_espera %} #{{ r.posicion_espera }}{% endif %}</span></td>
+          <td class="text-end">{% if r.estado != 'ASISTIO' %}<form method="post" action="{% url 'reserva_cancelar' r.pk %}">{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-sm btn-outline-danger">Cancelar</button></form>{% endif %}</td></tr>
+      {% empty %}<tr><td class="text-muted">No tienes reservas.</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+    <div class="row g-3">
+      <div class="col-lg-6"><div class="card p-3 h-100">
+        <h2 class="h6">Pagos</h2>
+        <ul class="list-unstyled small mb-0">
+        {% for p in pagos %}<li>{{ p.fecha_pago|date:"d-m-Y" }} · {{ p.membresia.plan.nombre }} · ${{ p.monto|intcomma }} · {{ p.get_estado_display }}</li>
+        {% empty %}<li class="text-muted">Sin pagos.</li>{% endfor %}
+        </ul>
+      </div></div>
+      <div class="col-lg-6"><div class="card p-3 h-100">
+        <h2 class="h6">Últimos accesos</h2>
+        <ul class="list-unstyled small mb-0">
+        {% for a in accesos %}<li>{{ a.fecha_hora|date:"d-m H:i" }} · {{ a.get_tipo_display }} · {{ a.get_resultado_display }}</li>
+        {% empty %}<li class="text-muted">Sin registros.</li>{% endfor %}
+        </ul>
+      </div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

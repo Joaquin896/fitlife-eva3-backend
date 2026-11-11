@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Aforo en tiempo real{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <div>
+    <h1 class="h3 mb-0">Control de aforo en tiempo real</h1>
+    <small class="text-muted"><span id="instalacion">—</span> · actualizado <span id="actualizado">—</span> · refresco automático cada 3 s</small>
+  </div>
+  <a class="btn btn-warning" href="{% url 'acceso' %}">Abrir control QR</a>
+</div>
+
+<div class="card p-3 mb-3">
+  <div class="d-flex justify-content-between mb-1">
+    <strong>Ocupación</strong><span><span id="ocupacion">0</span> / <span id="capacidad">0</span> personas</span>
+  </div>
+  <div class="progress aforo-bar">
+    <div id="barra" class="progress-bar bg-success" role="progressbar" style="width:0%">0%</div>
+  </div>
+  <div id="alerta" class="alert mt-3 mb-0 py-2 d-none"></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card p-3"><div class="kpi-label">Personas dentro</div><div class="kpi" id="k-dentro">0</div></div></div>
+  <div class="col-6 col-md-3"><div class="card p-3"><div class="kpi-label">Cupos disponibles</div><div class="kpi" id="k-disp">0</div></div></div>
+  <div class="col-6 col-md-3"><div class="card p-3"><div class="kpi-label">Ingresos hoy</div><div class="kpi text-success" id="k-ing">0</div></div></div>
+  <div class="col-6 col-md-3"><div class="card p-3"><div class="kpi-label">Accesos denegados hoy</div><div class="kpi text-danger" id="k-den">0</div></div></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card p-3 h-100">
+      <h2 class="h6">Personas dentro de la instalación</h2>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Socio</th><th>RUT</th><th>Ingreso</th></tr></thead>
+        <tbody id="t-dentro"><tr><td colspan="3" class="text-muted">Nadie dentro.</td></tr></tbody>
+      </table></div>
+      <hr>
+      <h2 class="h6">Membresías</h2>
+      <div class="d-flex gap-2 flex-wrap">
+        <span class="badge text-bg-success">Activas: <span id="m-act">0</span></span>
+        <span class="badge text-bg-danger">Vencidas: <span id="m-ven">0</span></span>
+        <span class="badge text-bg-info">Congeladas: <span id="m-con">0</span></span>
+        <span class="badge text-bg-dark">Latencia QR prom.: <span id="lat">—</span> ms</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card p-3 mb-3">
+      <h2 class="h6">Últimos accesos</h2>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Hora</th><th>Socio</th><th>Tipo</th><th>Resultado</th><th>Motivo</th></tr></thead>
+        <tbody id="t-accesos"><tr><td colspan="5" class="text-muted">Sin accesos hoy.</td></tr></tbody>
+      </table></div>
+    </div>
+    <div class="card p-3">
+      <h2 class="h6">Clases de hoy</h2>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Hora</th><th>Clase</th><th>Sala</th><th>Reservas</th><th>Espera</th></tr></thead>
+        <tbody id="t-clases"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const COLOR = { normal: 'bg-success', alerta: 'bg-warning', lleno: 'bg-danger' };
+async function refrescar() {
+  try {
+    const d = await api('/api/aforo/');
+    document.getElementById('instalacion').textContent = d.instalacion;
+    document.getElementById('actualizado').textContent = d.actualizado;
+    document.getElementById('ocupacion').textContent = d.ocupacion;
+    document.getElementById('capacidad').textContent = d.capacidad;
+    const barra = document.getElementById('barra');
+    barra.style.width = Math.min(d.porcentaje, 100) + '%';
+    barra.textContent = d.porcentaje + '%';
+    barra.className = 'progress-bar ' + COLOR[d.nivel];
+    const alerta = document.getElementById('alerta');
+    if (d.nivel === 'normal') { alerta.className = 'alert mt-3 mb-0 py-2 d-none'; }
+    else {
+      alerta.className = 'alert mt-3 mb-0 py-2 ' + (d.nivel === 'lleno' ? 'alert-danger' : 'alert-warning');
+      alerta.textContent = d.nivel === 'lleno'
+        ? 'Aforo completo: el torniquete bloqueará nuevos ingresos hasta que salga alguien.'
+        : 'Atención: ocupación sobre el ' + d.umbral_alerta + '% de la capacidad.';
+    }
+    document.getElementById('k-dentro').textContent = d.ocupacion;
+    document.getElementById('k-disp').textContent = d.disponibles;
+    document.getElementById('k-ing').textContent = d.ingresos_hoy;
+    document.getElementById('k-den').textContent = d.denegados_hoy;
+    document.getElementById('m-act').textContent = d.membresias.ACTIVA;
+    document.getElementById('m-ven').textContent = d.membresias.VENCIDA;
+    document.getElementById('m-con').textContent = d.membresias.CONGELADA;
+    document.getElementById('lat').textContent = d.latencia_promedio_ms ?? '—';
+
+    document.getElementById('t-dentro').innerHTML = d.dentro.length
+      ? d.dentro.map(p => `<tr><td>${escapeHtml(p.socio)}</td><td>${escapeHtml(p.rut)}</td><td>${p.desde}</td></tr>`).join('')
+      : '<tr><td colspan="3" class="text-muted">Nadie dentro.</td></tr>';
+    document.getElementById('t-accesos').innerHTML = d.ultimos_accesos.length
+      ? d.ultimos_accesos.map(a => `<tr><td>${a.hora}</td><td>${escapeHtml(a.socio)}</td><td>${a.tipo}</td>
+          <td><span class="badge text-bg-${a.resultado === 'PERMITIDO' ? 'success' : 'danger'}">${a.resultado}</span></td>
+          <td class="small">${escapeHtml(a.motivo)}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="text-muted">Sin accesos hoy.</td></tr>';
+    document.getElementById('t-clases').innerHTML = d.clases_hoy.length
+      ? d.clases_hoy.map(c => `<tr class="${c.finalizada ? 'text-muted' : ''}"><td>${c.hora}</td>
+          <td><a href="/sesiones/${c.id}/">${escapeHtml(c.clase)}</a></td><td>${escapeHtml(c.sala)}</td>
+          <td>${c.confirmadas}/${c.cupo}</td><td>${c.en_espera}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="text-muted">No hay clases hoy.</td></tr>';
+  } catch (e) { console.error(e); }
+}
+refrescar();
+setInterval(refrescar, 3000);
+</script>
+{% endblock %}

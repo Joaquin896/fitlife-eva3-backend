@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | FitLife Admin{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  :root, html[data-theme="light"] {
+    --primary: #1f2a44;
+    --secondary: #2f3f66;
+    --accent: #ffb703;
+    --header-bg: #1f2a44;
+    --breadcrumbs-bg: #2f3f66;
+    --link-fg: #1f5fbf;
+    --button-bg: #1f2a44;
+    --button-hover-bg: #2f3f66;
+    --default-button-bg: #ffb703;
+    --default-button-hover-bg: #e0a000;
+  }
+  #site-name a span { color: #ffb703; }
+</style>
+{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">Fit<span>Life</span> · Administración</a></div>
+{% if user.is_anonymous %}{% include "admin/color_theme_toggle.html" %}{% endif %}
+{% endblock %}
+
+{% block userlinks %}
+  <a href="{% url 'dashboard' %}">Dashboard de aforo</a> /
+  <a href="{% url 'acceso' %}">Control QR</a> /
+  {{ block.super }}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

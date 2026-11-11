@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Clases grupales{% endblock %}
+{% block content %}
+<h1 class="h3">Clases grupales · próximos 7 días</h1>
+<p class="text-muted">Si una clase está llena, tu reserva queda en <strong>lista de espera</strong> y se confirma automáticamente cuando alguien cancela.</p>
+<div id="aviso" class="alert d-none"></div>
+
+{% for dia, items in por_dia.items %}
+  <h2 class="h6 mt-4 text-uppercase text-muted">{{ dia|date:"l d \d\e F" }}</h2>
+  <div class="row g-3">
+  {% for it in items %}
+    {% with s=it.s mi=it.mi %}
+    <div class="col-sm-6 col-lg-4 col-xxl-3">
+      <div class="card sesion-card p-3 h-100">
+        <div class="d-flex justify-content-between">
+          <strong>{{ s.clase.nombre }}</strong>
+          <span class="text-muted">{{ s.inicio|time:"H:i" }}</span>
+        </div>
+        <small class="text-muted">{{ s.clase.instructor }} · {{ s.clase.sala }} · {{ s.clase.duracion_minutos }} min</small>
+        <div class="progress my-2">
+          <div class="progress-bar {% if s.cupos_disponibles == 0 %}bg-danger{% else %}bg-success{% endif %}"
+               style="width: {% widthratio s.confirmadas s.cupo_maximo 100 %}%"></div>
+        </div>
+        <small>{{ s.confirmadas }}/{{ s.cupo_maximo }} confirmados · {{ s.en_espera }} en espera</small>
+        <div class="mt-auto pt-2">
+          {% if s.cancelada %}
+            <span class="badge text-bg-secondary">Cancelada</span>
+          {% elif es_socio %}
+            {% if mi %}
+              <span class="badge text-bg-{% if mi.estado == 'CONFIRMADA' %}success{% else %}warning{% endif %} mb-2">
+                {{ mi.get_estado_display }}{% if mi.posicion_espera %} · posición {{ mi.posicion_espera }}{% endif %}
+              </span><br>
+              <button class="btn btn-sm btn-outline-danger" data-cancelar="{{ mi.pk }}">Cancelar reserva</button>
+            {% elif s.ya_paso %}
+              <span class="badge text-bg-light">Ya comenzó</span>
+            {% else %}
+              <button class="btn btn-sm {% if s.cupos_disponibles %}btn-primary{% else %}btn-warning{% endif %}" data-reservar="{{ s.pk }}">
+                {% if s.cupos_disponibles %}Reservar{% else %}Unirme a lista de espera{% endif %}
+              </button>
+            {% endif %}
+          {% endif %}
+          {% if es_personal %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'sesion_detalle' s.pk %}">Ver lista</a>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+  {% endfor %}
+  </div>
+{% empty %}
+  <div class="alert alert-info">No hay sesiones programadas. Ejecute <code>python manage.py generar_sesiones</code>.</div>
+{% endfor %}
+{% endblock %}
+{% block scripts %}
+<script>
+const aviso = document.getElementById('aviso');
+function mostrar(tipo, texto) {
+  aviso.className = 'alert alert-' + tipo;
+  aviso.textContent = texto;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.querySelectorAll('[data-reservar]').forEach(b => b.addEventListener('click', async () => {
+  b.disabled = true;
+  try {
+    const r = await api(`/api/sesiones/${b.dataset.reservar}/reservar/`, { method: 'POST', body: '{}' });
+    mostrar('success', r.estado === 'CONFIRMADA'
+      ? 'Reserva confirmada.' : `Clase llena: quedaste en lista de espera (posición ${r.posicion_espera}).`);
+    setTimeout(() => location.reload(), 1200);
+  } catch (e) { mostrar('danger', e.message); b.disabled = false; }
+}));
+document.querySelectorAll('[data-cancelar]').forEach(b => b.addEventListener('click', async () => {
+  if (!confirm('¿Cancelar esta reserva?')) return;
+  try {
+    await api(`/api/reservas/${b.dataset.cancelar}/cancelar/`, { method: 'POST', body: '{}' });
+    mostrar('success', 'Reserva cancelada. Si había lista de espera, el siguiente socio fue confirmado.');
+    setTimeout(() => location.reload(), 1200);
+  } catch (e) { mostrar('danger', e.message); }
+}));
+</script>
+{% endblock %}

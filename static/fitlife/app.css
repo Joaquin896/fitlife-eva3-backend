@@ -1,0 +1,20 @@
+:root { --fitlife: #1f2a44; --fitlife-acento: #ffb703; }
+body { background: #f4f6fb; }
+.bg-fitlife { background: var(--fitlife); }
+.card { border: 0; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.kpi { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+.kpi-label { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; }
+.aforo-bar { height: 28px; font-weight: 600; }
+.resultado-acceso { min-height: 180px; transition: background .2s; border-radius: .75rem; }
+.resultado-acceso.permitido { background: #d1e7dd; color: #0f5132; }
+.resultado-acceso.denegado { background: #f8d7da; color: #842029; }
+.resultado-acceso .titulo { font-size: 2rem; font-weight: 800; }
+.qr-box { background: #fff; padding: 12px; border-radius: .5rem; display: inline-block; }
+.qr-box img { width: 220px; height: 220px; }
+.sesion-card .progress { height: 8px; }
+.table td, .table th { vertical-align: middle; }
+.login-card { max-width: 420px; }
+@media (max-width: 576px) {
+  .kpi { font-size: 1.7rem; }
+  .qr-box img { width: 180px; height: 180px; }
+}

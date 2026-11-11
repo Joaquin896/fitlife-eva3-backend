@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card p-4">
+  <h1 class="h5">Usuario sin rol</h1>
+  <p class="mb-0">Tu cuenta no está asociada a un socio ni al personal de recepción.
+  {% if user.is_superuser %}Como administrador puedes usar el <a href="{% url 'admin:index' %}">Django Admin</a>.{% endif %}</p>
+</div>
+{% endblock %}

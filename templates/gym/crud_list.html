@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ cfg.titulo }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">{{ cfg.titulo }}</h1>
+  {% if not cfg.solo_lectura %}<a class="btn btn-primary" href="{% url 'crud_create' entidad %}">+ Nuevo/a {{ nombre_modelo }}</a>{% endif %}
+</div>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-sm-6 col-lg-4"><input class="form-control" name="q" value="{{ q }}" placeholder="Buscar…"></div>
+  {% if cfg.filtro_estado %}
+  <div class="col-sm-4 col-lg-3">
+    <select class="form-select" name="estado" onchange="this.form.submit()">
+      <option value="">Todos los estados</option>
+      {% for valor, texto in cfg.filtro_estado %}<option value="{{ valor }}" {% if valor == estado_sel %}selected{% endif %}>{{ texto }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <div class="col-auto"><button class="btn btn-outline-secondary">Filtrar</button></div>
+</form>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light"><tr>{% for h in encabezados %}<th>{{ h }}</th>{% endfor %}{% if not cfg.solo_lectura %}<th class="text-end">Acciones</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for obj, celdas in filas %}
+        <tr>
+          {% for c in celdas %}<td>{{ c }}</td>{% endfor %}
+          {% if not cfg.solo_lectura %}
+          <td class="text-end text-nowrap">
+            {% if cfg.acciones_membresia %}
+              {% if obj.estado == 'ACTIVA' %}
+                <form method="post" action="{% url 'membresia_accion' obj.pk 'congelar' %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-outline-info">Congelar</button></form>
+              {% elif obj.estado == 'CONGELADA' %}
+                <form method="post" action="{% url 'membresia_accion' obj.pk 'descongelar' %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-info">Descongelar</button></form>
+              {% endif %}
+              <a class="btn btn-sm btn-outline-success" href="{% url 'crud_create' 'pagos' %}?membresia={{ obj.pk }}">Pago</a>
+            {% endif %}
+            {% if entidad == 'socios' %}<a class="btn btn-sm btn-outline-success" href="{% url 'crud_create' 'membresias' %}?socio={{ obj.pk }}">Membresía</a>{% endif %}
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'crud_update' entidad obj.pk %}">Editar</a>
+            <a class="btn btn-sm btn-outline-danger" href="{% url 'crud_delete' entidad obj.pk %}">Eliminar</a>
+          </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="{{ encabezados|length|add:1 }}" class="text-muted">Sin registros.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if is_paginated %}
+<nav class="mt-3"><ul class="pagination">
+  {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&estado={{ estado_sel }}">Anterior</a></li>{% endif %}
+  <li class="page-item disabled"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+  {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&estado={{ estado_sel }}">Siguiente</a></li>{% endif %}
+</ul></nav>
+{% endif %}
+{% endblock %}

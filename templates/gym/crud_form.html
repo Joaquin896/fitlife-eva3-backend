@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ cfg.titulo }}{% endblock %}
+{% block content %}
+<a href="{% url 'crud_list' entidad %}" class="small">&larr; Volver a {{ cfg.titulo|lower }}</a>
+<h1 class="h3 mt-2">{% if object %}Editar{% else %}Nuevo/a{% endif %} {{ nombre_modelo }}</h1>
+<div class="card p-3 p-md-4" style="max-width: 760px">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="row g-3">
+    {% for field in form %}
+      <div class="{% if field.field.widget.input_type == 'checkbox' %}col-12 form-check ms-2{% else %}col-md-6{% endif %}">
+        {% if field.field.widget.input_type == 'checkbox' %}
+          {{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% else %}
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+          {{ field }}
+        {% endif %}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+    </div>
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary">Guardar</button>
+      <a class="btn btn-outline-secondary" href="{% url 'crud_list' entidad %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

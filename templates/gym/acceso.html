@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Control de acceso QR{% endblock %}
+{% block content %}
+<h1 class="h3">Control de acceso por QR</h1>
+<p class="text-muted">Un lector QR USB funciona como teclado: escribe el código en el campo y presiona Enter.
+También puedes <strong>simular el escaneo</strong> con los botones de la derecha.</p>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card p-3 mb-3">
+      <form id="form-qr" class="row g-2" autocomplete="off">
+        <div class="col-12">
+          <label class="form-label" for="codigo">Código leído</label>
+          <input id="codigo" class="form-control form-control-lg" placeholder="Escanee el QR del socio…" autofocus>
+        </div>
+        <div class="col-8">
+          <select id="tipo" class="form-select">
+            <option value="AUTO">Automático (entra si está fuera, sale si está dentro)</option>
+            <option value="ENTRADA">Forzar ENTRADA</option>
+            <option value="SALIDA">Forzar SALIDA</option>
+          </select>
+        </div>
+        <div class="col-4 d-grid"><button class="btn btn-primary">Validar</button></div>
+      </form>
+    </div>
+    <div id="resultado" class="resultado-acceso card p-4 d-flex justify-content-center">
+      <div class="text-muted text-center">Esperando lectura…</div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card p-3">
+      <h2 class="h6">Simular escaneo</h2>
+      <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Socio</th><th>Membresía</th><th></th></tr></thead>
+        <tbody>
+        {% for item in socios %}
+          <tr>
+            <td>{{ item.obj.nombre }}<br><small class="text-muted">{{ item.obj.rut }}</small></td>
+            <td>
+              <span class="badge text-bg-{% if item.estado == 'ACTIVA' %}success{% elif item.estado == 'VENCIDA' %}danger{% elif item.estado == 'CONGELADA' %}info{% else %}secondary{% endif %}">{{ item.estado }}</span>
+              {% if not item.pagada and item.estado == 'ACTIVA' %}<span class="badge text-bg-warning">pago pendiente</span>{% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'qr_svg' item.obj.pk %}" target="_blank" title="Ver QR">QR</a>
+              <button class="btn btn-sm btn-dark" data-codigo="{{ item.obj.codigo_qr }}">Escanear</button>
+            </td>
+          </tr>
+        {% endfor %}
+          <tr>
+            <td colspan="2"><em>QR desconocido / falsificado</em></td>
+            <td class="text-end"><button class="btn btn-sm btn-outline-danger" data-codigo="00000000-0000-0000-0000-000000000000">Escanear</button></td>
+          </tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const caja = document.getElementById('resultado');
+const input = document.getElementById('codigo');
+
+async function validar(codigo) {
+  if (!codigo) return;
+  const t0 = performance.now();
+  try {
+    const r = await api('/api/acceso/validar/', {
+      method: 'POST',
+      body: JSON.stringify({ codigo, tipo: document.getElementById('tipo').value }),
+    });
+    const total = (performance.now() - t0).toFixed(0);
+    const ok = r.resultado === 'PERMITIDO';
+    caja.className = 'resultado-acceso card p-4 ' + (ok ? 'permitido' : 'denegado');
+    caja.innerHTML = `
+      <div class="titulo">${ok ? 'ACCESO PERMITIDO' : 'ACCESO DENEGADO'} · ${r.tipo}</div>
+      <div class="fs-5 fw-semibold">${escapeHtml(r.socio_nombre || 'Socio no identificado')}</div>
+      <div>${escapeHtml(r.motivo)}</div>
+      ${r.membresia ? `<div class="small mt-1">Plan ${escapeHtml(r.membresia.plan)} · ${r.membresia.estado} · vence ${r.membresia.vence}</div>` : ''}
+      <div class="small mt-2">Validación en servidor: <strong>${r.latencia_ms} ms</strong> · ida y vuelta: ${total} ms · aforo actual: ${r.aforo}</div>`;
+  } catch (e) {
+    caja.className = 'resultado-acceso card p-4 denegado';
+    caja.innerHTML = `<div class="titulo">ERROR</div><div>${escapeHtml(e.message)}</div>`;
+  }
+  input.value = '';
+  input.focus();
+}
+
+document.getElementById('form-qr').addEventListener('submit', ev => { ev.preventDefault(); validar(input.value.trim()); });
+document.querySelectorAll('[data-codigo]').forEach(b => b.addEventListener('click', () => validar(b.dataset.codigo)));
+</script>
+{% endblock %}

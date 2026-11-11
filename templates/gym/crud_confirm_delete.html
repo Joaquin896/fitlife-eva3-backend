@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Eliminar{% endblock %}
+{% block content %}
+<div class="card p-4" style="max-width: 560px">
+  <h1 class="h5">¿Eliminar {{ nombre_modelo }}?</h1>
+  <p><strong>{{ object }}</strong></p>
+  <p class="text-muted small">Esta acción no se puede deshacer.</p>
+  <form method="post">{% csrf_token %}
+    <button class="btn btn-danger">Sí, eliminar</button>
+    <a class="btn btn-outline-secondary" href="{% url 'crud_list' entidad %}">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

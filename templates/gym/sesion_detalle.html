@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ sesion.clase.nombre }}{% endblock %}
+{% block content %}
+<a href="{% url 'clases' %}" class="small">&larr; Volver a clases</a>
+<h1 class="h3 mt-2">{{ sesion.clase.nombre }} · {{ sesion.inicio|date:"l d-m-Y H:i" }}</h1>
+<p class="text-muted">{{ sesion.clase.instructor }} · {{ sesion.clase.sala }} ·
+  <strong>{{ sesion.confirmadas }}/{{ sesion.cupo_maximo }}</strong> confirmados ·
+  <a href="{% url 'crud_update' 'sesiones' sesion.pk %}">editar cupo</a></p>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card p-3">
+      <h2 class="h6">Reservar para un socio</h2>
+      <form method="post">{% csrf_token %}
+        {{ form.socio }}
+        <button class="btn btn-primary btn-sm mt-2">Reservar</button>
+      </form>
+      <small class="text-muted d-block mt-2">Si no hay cupo, la reserva queda en lista de espera.</small>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card p-3 mb-3">
+      <h2 class="h6">Confirmados</h2>
+      <table class="table table-sm mb-0"><tbody>
+      {% for r in confirmadas %}
+        <tr><td>{{ r.socio.nombre }}</td>
+          <td><span class="badge text-bg-{% if r.estado == 'ASISTIO' %}primary{% else %}success{% endif %}">{{ r.get_estado_display }}</span></td>
+          <td class="text-end text-nowrap">
+            {% if r.estado == 'CONFIRMADA' %}
+            <form method="post" action="{% url 'reserva_asistio' r.pk %}" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-outline-primary">Asistió</button></form>
+            <form method="post" action="{% url 'reserva_cancelar' r.pk %}" class="d-inline">{% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-sm btn-outline-danger">Cancelar</button></form>
+            {% endif %}
+          </td></tr>
+      {% empty %}<tr><td class="text-muted">Sin reservas confirmadas.</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+    <div class="card p-3 mb-3">
+      <h2 class="h6">Lista de espera (orden de llegada)</h2>
+      <table class="table table-sm mb-0"><tbody>
+      {% for r in espera %}
+        <tr><td>#{{ forloop.counter }}</td><td>{{ r.socio.nombre }}</td><td class="small text-muted">{{ r.creada|date:"d-m H:i:s" }}</td>
+          <td class="text-end"><form method="post" action="{% url 'reserva_cancelar' r.pk %}">{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-sm btn-outline-danger">Quitar</button></form></td></tr>
+      {% empty %}<tr><td class="text-muted">Nadie en espera.</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+    {% if canceladas %}
+    <div class="card p-3">
+      <h2 class="h6 text-muted">Canceladas</h2>
+      <ul class="small mb-0">{% for r in canceladas %}<li>{{ r.socio.nombre }} · {{ r.actualizada|date:"d-m H:i" }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
